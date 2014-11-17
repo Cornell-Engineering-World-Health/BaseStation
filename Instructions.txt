@@ -29,3 +29,5 @@ Instructions:
             add to the nurseDb using 'name' as the key and 'num' as the value
         NurseHandler.run()
             this method will wait for input from the commandline to receive name and num of nurses
+
+    Create test cases for each function using pythons 'unit test' framework
