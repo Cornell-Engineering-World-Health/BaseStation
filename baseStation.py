@@ -1,6 +1,7 @@
 from threading import Thread, Lock, Condition
 import shelve
 import os
+import time
 
 #TODO: make this class thread safe
 class Database(object):
@@ -12,6 +13,8 @@ class Database(object):
     def saveDatabase(self):
         with self.lock:
             self.database.sync()
+            self.database.close()
+            self.database = shelve.open(filename,writeback=True)
 
     #need to complete
     def write(self, key, value):
@@ -92,11 +95,12 @@ class NurseHandler(Thread):
 #========================================================================================================
 
 if __name__ == "__main__":
-    patientDb = Database("patients.db")
-    nurseDb = Database("nurses.db")
+    patientDb = Database("patients")
+    nurseDb = Database("nurses")
     dataInputStream = ["p1,bed1,stable","p2,bed5,critical","p3,bed6,intermediate","p1,bed1,critical","p2,bed5,stable","p3,bed6,intermediate","p1,bed1,critical","p2,bed5,intermediate","p3,bed6,critical"]
-    n = NurseHandler(nurseDb).start()
-    n.join()
+    NurseHandler(nurseDb).start()
+    #gives 10 seconds to input nurse 'name' and 'num'
+    time.sleep(10)
     for ii in range(9):
         vdh = VitalDataHandler(patientDb,nurseDb,dataInputStream[ii],ii).start()
         vdh.join()
