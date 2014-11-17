@@ -10,25 +10,7 @@ class Database(object):
 
     #saves database dict in filename
     def saveDatabase(self):
-<<<<<<< HEAD
-        with self.lock:
-            self.database.sync()
-
-    #need to complete
-    def write(self, key, value):
-        pass
-
-    #need to complete
-    def read(self, key):
-        pass
-
-    #need to complete
-    def inDatabase(self, key):
-        pass
-        
-
-=======
-	with self.lock:
+    	with self.lock:
             self.database.sync()
     
     #make data structure itself thread-safe
@@ -42,9 +24,8 @@ class Database(object):
             return self.database[key]
 
     def inDatabase(key):
-	with self.lock:
-	    return key in self.database
->>>>>>> 292b1a8f7463151e62ffc0cd824382d7fea7eb1d
+	    with self.lock:
+	        return key in self.database
 
 #TODO: make multi-thread safe + write: formatText, isNegStatusChange, saveInfo
 class VitalDataHandler(Thread):
@@ -81,28 +62,15 @@ class VitalDataHandler(Thread):
     #saves all info in a database.db
     #KEY: patientId+','+location; VAL: status
     def saveInfo(self,patientId,location,status):
-<<<<<<< HEAD
-        pass
-        
-    #need to complete
-    #thread's main function
-    def run(self):
-        pass
- 
-        
-
-       
-=======
         self.patientDB.Database.write(`patientId` + ',' + `location`, `patientId`+ ',' + `status`)
 
     #thread's main function
     def run(self):
-	data = self.dataInput.split(',')
-	patientId, location, status = data[0], data[1], data[2]
-        if isNegStatusChange(patientId, location, status): 
-            self.sendText(self.formatText(patientId, locaiton, status))
-	self.saveInfo(patientId, location, status)
->>>>>>> 292b1a8f7463151e62ffc0cd824382d7fea7eb1d
+	    data = self.dataInput.split(',')
+	    patientId, location, status = data[0], data[1], data[2]
+            if isNegStatusChange(patientId, location, status): 
+                self.sendText(self.formatText(patientId, locaiton, status))
+	    self.saveInfo(patientId, location, status)
 
 #TODO: make thread safe + addPhoneNum
 class NurseHandler(Thread):
