@@ -55,7 +55,7 @@ class VitalDataHandler(Thread):
     #need to complete
     #sends text from pi to nurses
     def sendText(self,msg):
-        pass
+        os.system("echo "+msg)
 
     #need to complete
     #saves all info in a database.db
@@ -95,7 +95,8 @@ if __name__ == "__main__":
     patientDb = Database("patients.db")
     nurseDb = Database("nurses.db")
     dataInputStream = ["p1,bed1,stable","p2,bed5,critical","p3,bed6,intermediate","p1,bed1,critical","p2,bed5,stable","p3,bed6,intermediate","p1,bed1,critical","p2,bed5,intermediate","p3,bed6,critical"]
-    NurseHandler(nurseDb).start()
+    n = NurseHandler(nurseDb).start()
+    n.join()
     for ii in range(9):
         vdh = VitalDataHandler(patientDb,nurseDb,dataInputStream[ii],ii).start()
         vdh.join()
