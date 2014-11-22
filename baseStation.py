@@ -28,6 +28,15 @@ class Database(object):
         with self.lock:
             return self.database.has_key(key)
 
+    def clear(self):
+        self.database.clear()
+
+    def isEmpty(self):
+        return not self.database
+
+    def isNew(self, key):
+        return not self.database.has_key(key)
+
 #TODO: make multi-thread safe + write: formatText, isNegStatusChange, saveInfo
 class VitalDataHandler(Thread):
     def __init__(self, patientDb, nurseDb, dataInput, handlerId):
@@ -39,6 +48,7 @@ class VitalDataHandler(Thread):
 
     #converts status to int
     def intStatus(self,status):
+        print status
         return {'stable':1,'intermediate':0,'critical':-1}[status]
 
     #need to complete
@@ -52,7 +62,11 @@ class VitalDataHandler(Thread):
     #returns false if the patient does not exist in the database
     #possible statuses: "stable","intermediate","critical"
     def isNegStatusChange(self, patientId, location, status):
-        return self.intStatus(self.patientDb.read(patientId + ',' + location)) > self.intStatus(status)
+        #handle case of new patient or empty database
+        print status
+        oldStatus = self.patientDb.read(patientId + ',' + location)
+        print "old" + oldStatus
+        return self.intStatus(oldStatus) > self.intStatus(status)
 
     #need to complete
     #sends text from pi to nurses
@@ -70,7 +84,7 @@ class VitalDataHandler(Thread):
         data = self.dataInput.split(',')
         patientId, location, status = data[0], data[1], data[2]
         print patientId, location, status
-        if self.isNegStatusChange(patientId, location, status): 
+        if not self.patientDb.isNew(patientId+','+location) and self.isNegStatusChange(patientId, location, status): 
             #self.sendText(self.formatText(patientId, locaiton, status))		#uncomment!
             print "sending text"
         self.saveInfo(patientId, location, status)
@@ -95,7 +109,9 @@ class NurseHandler(object):
     #wait for external input (commandline text), then add to nurseDb
     def run(self):
         while True:
-            nurseName = raw_input("Enter nurse name: ")
+            nurseName = raw_input("Enter nurse name (s to skip): ")
+            if nurseName == 's':
+                break
             nurseNumber = raw_input("Enter nurse " + `nurseName` + "'s phone number: ")
             print "You've entered " + `nurseName` + " with number " + `nurseNumber` + "... storing to database..."
             self.addPhoneNum(nurseName, nurseNumber)
@@ -113,7 +129,7 @@ if __name__ == "__main__":
     patientDataInputStream = ["p1,bed1,stable","p2,bed5,critical","p3,bed6,intermediate","p1,bed1,critical","p2,bed5,stable","p3,bed6,intermediate","p1,bed1,critical","p2,bed5,intermediate","p3,bed6,critical"]
     NurseHandler(nurseDb).run()
     for ii in range(9):
-        vdh = VitalDataHandler(patientDb,nurseDb,patientDataInputStream[ii],ii)
+        vdh = VitalDataHandler(patientDb, nurseDb, patientDataInputStream[ii], ii)
         vdh.start()
         vdh.join()
     print "patient db: " + `patientDb.database`
