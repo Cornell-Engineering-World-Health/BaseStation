@@ -16,16 +16,16 @@ class Database(object):
     #make data structure itself thread-safe
     #writes to database only if not locked
     def write(self, key, value):
-	with self.lock:
+        with self.lock:
             self.database[key] = value
 
     def read(self, key):
-	with self.lock:
+        with self.lock:
             return self.database[key]
 
     def inDatabase(key):
-	    with self.lock:
-	        return key in self.database
+        with self.lock:
+            return key in self.database
 
 #TODO: make multi-thread safe + write: formatText, isNegStatusChange, saveInfo
 class VitalDataHandler(Thread):
@@ -43,18 +43,17 @@ class VitalDataHandler(Thread):
     #Formats and returns the the text that will be sent out
     #inputs: String patientId, String location, String status
     def formatText(self, patientId, location, status):
-        return "Patient " + `patientId` + " at " `location` + " is " + `status` + "."
+        return "Patient " + `patientId` + " at " + `location` + " is " + `status` + "."
 
     #need to complete
     #checks database.db if there is a negative status change in the patient
     #returns false if the patient does not exist in the database
     #possible statuses: "stable","intermediate","critical"
     def isNegStatusChange(self, patientId, location, status):
-        return self.intStatus(self.patientDB.Database.read(`patientId` + ',' + `location`) > intStatus(status)
+        return self.intStatus(self.patientDB.Database.read(`patientId` + ',' + `location`)) > intStatus(status)
 
     #need to complete
     #sends text from pi to nurses
-    import os
     def sendText(self,msg):
         os.system('echo ' + `msg`)
 
@@ -66,26 +65,33 @@ class VitalDataHandler(Thread):
 
     #thread's main function
     def run(self):
-	    data = self.dataInput.split(',')
-	    patientId, location, status = data[0], data[1], data[2]
-            if isNegStatusChange(patientId, location, status): 
-                self.sendText(self.formatText(patientId, locaiton, status))
-	    self.saveInfo(patientId, location, status)
+        data = self.dataInput.split(',')
+        patientId, location, status = data[0], data[1], data[2]
+        if isNegStatusChange(patientId, location, status): 
+            self.sendText(self.formatText(patientId, locaiton, status))
+        self.saveInfo(patientId, location, status)
 
 #TODO: make thread safe + addPhoneNum
 class NurseHandler(Thread):
     def __init__(self,nurseDb):
+        self.lock = Lock()
         self.nurseDb = nurseDb
 
     #need to complete
     #adds KEY:name, VAL:num to nurseDb and saves to nurseDb
     def addPhoneNum(self,name,num):
-        pass
+        if name not in self.nurseDB:
+            with self.lock:
+                self.database[name] = number
+            print "Nurse added to database."
 
     #need to complete
     #wait for external input (commandline text), then add to nurseDb
     def run(self):
-        pass
+        nurseName = raw_input("Enter nurse name: ")
+        nurseNumber = raw_input("Enter nurse " + `nurseName` + "'s phone number: ")
+        print "You've entered " + `nurseName` + " with number" + `nurseNumber` + "... storing to database..."
+        self.addPhoneNum(nurseName, nurseNumber)
 
 #========================================================================================================
 #    Main
