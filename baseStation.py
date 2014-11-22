@@ -17,17 +17,16 @@ class Database(object):
     #writes to database only if not locked
     def write(self, key, value):
         with self.lock:
-            print 'writing'
             self.database[key] = value
 
     def read(self, key):
-        if key in self.database:
+        if self.inDatabase(key):
             with self.lock:
                 return self.database[key]
 
-    def inDatabase(key):
+    def inDatabase(self, key):
         with self.lock:
-            return key in self.database
+            return self.database.has_key(key)
 
 #TODO: make multi-thread safe + write: formatText, isNegStatusChange, saveInfo
 class VitalDataHandler(Thread):
@@ -40,7 +39,6 @@ class VitalDataHandler(Thread):
 
     #converts status to int
     def intStatus(self,status):
-        print "status: " + `status`
         return {'stable':1,'intermediate':0,'critical':-1}[status]
 
     #need to complete
@@ -54,9 +52,7 @@ class VitalDataHandler(Thread):
     #returns false if the patient does not exist in the database
     #possible statuses: "stable","intermediate","critical"
     def isNegStatusChange(self, patientId, location, status):
-        print patientId + ',' + location + ',' + status
-        print "reading database: " + `self.patientDb.read(patientId + ',' + location + ',' + status)`
-        return self.intStatus(self.patientDb.read(patientId + ',' + location + ',' + status)) > intStatus(status)
+        return self.intStatus(self.patientDb.read(patientId + ',' + location)) > self.intStatus(status)
 
     #need to complete
     #sends text from pi to nurses
@@ -77,31 +73,35 @@ class VitalDataHandler(Thread):
         if self.isNegStatusChange(patientId, location, status): 
             #self.sendText(self.formatText(patientId, locaiton, status))		#uncomment!
             print "sending text"
-        print "here"
         self.saveInfo(patientId, location, status)
 
 #TODO: make thread safe + addPhoneNum
-class NurseHandler(Thread):
+class NurseHandler(object):
     def __init__(self,nurseDb):
-        Thread.__init__(self)
-        self.lock = Lock()
         self.nurseDb = nurseDb
 
-    """#need to complete
+    #need to complete
     #adds KEY:name, VAL:num to nurseDb and saves to nurseDb
-    def addPhoneNum(self,name,num):
-        if name not in self.nurseDB:
-            with self.lock:
-                self.database[name] = number
+    def addPhoneNum(self, name, number):
+        #if not self.hasNurse(name, number):
+        if name not in self.nurseDb.database:
+            self.nurseDb.database[name] = number
             print "Nurse added to database."
+
+    #def hasNurse(self, name, number):
+     #   return self.nurseDb.database.has_key(name) and self.nurseDb[name] == number #no key error because of operator precedence
 
     #need to complete
     #wait for external input (commandline text), then add to nurseDb
     def run(self):
-        nurseName = raw_input("Enter nurse name: ")
-        nurseNumber = raw_input("Enter nurse " + `nurseName` + "'s phone number: ")
-        print "You've entered " + `nurseName` + " with number" + `nurseNumber` + "... storing to database..."
-        self.addPhoneNum(nurseName, nurseNumber)"""
+        while True:
+            nurseName = raw_input("Enter nurse name: ")
+            nurseNumber = raw_input("Enter nurse " + `nurseName` + "'s phone number: ")
+            print "You've entered " + `nurseName` + " with number " + `nurseNumber` + "... storing to database..."
+            self.addPhoneNum(nurseName, nurseNumber)
+            addAnother = raw_input("Add another nurse? (y/n)")
+            if addAnother != 'y':
+                break
 
 #========================================================================================================
 #    Main
@@ -110,10 +110,11 @@ class NurseHandler(Thread):
 if __name__ == "__main__":
     patientDb = Database("patients.db")
     nurseDb = Database("nurses.db")
-    dataInputStream = ["p1,bed1,stable","p2,bed5,critical","p3,bed6,intermediate","p1,bed1,critical","p2,bed5,stable","p3,bed6,intermediate","p1,bed1,critical","p2,bed5,intermediate","p3,bed6,critical"]
-    NurseHandler(nurseDb).start()
+    patientDataInputStream = ["p1,bed1,stable","p2,bed5,critical","p3,bed6,intermediate","p1,bed1,critical","p2,bed5,stable","p3,bed6,intermediate","p1,bed1,critical","p2,bed5,intermediate","p3,bed6,critical"]
+    NurseHandler(nurseDb).run()
     for ii in range(9):
-        vdh = VitalDataHandler(patientDb,nurseDb,dataInputStream[ii],ii)
+        vdh = VitalDataHandler(patientDb,nurseDb,patientDataInputStream[ii],ii)
         vdh.start()
         vdh.join()
-        print patientDb.database
+    print "patient db: " + `patientDb.database`
+    print "nurse db:" + `nurseDb.database`
