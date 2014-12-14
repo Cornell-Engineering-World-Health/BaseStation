@@ -1,6 +1,7 @@
 from threading import Thread, Lock, Condition
 import shelve
 import os
+import subprocess
 
 #TODO: make this class thread safe
 class Database(object):
@@ -72,7 +73,8 @@ class VitalDataHandler(Thread):
     #sends text from pi to nurses
     def sendText(self,msg):
         os.system('echo ' + `msg`)
-
+        #bash = "gammu sendsms text "
+		
     #need to complete
     #saves all info in a database.db
     #KEY: patientId+','+location; VAL: status
