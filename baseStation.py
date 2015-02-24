@@ -11,7 +11,7 @@ class Database(object):
 
     #saves database dict in filename
     def saveDatabase(self):
-    	with self.lock:
+        with self.lock:
             self.database.sync()
     
     #make data structure itself thread-safe
@@ -38,6 +38,12 @@ class Database(object):
     def isNew(self, key):
         return not self.database.has_key(key)
 
+    def getKeys(self):
+        with self.lock:
+            return self.database.keys()
+
+
+
 #TODO: make multi-thread safe + write: formatText, isNegStatusChange, saveInfo
 class VitalDataHandler(Thread):
     def __init__(self, patientDb, nurseDb, dataInput, handlerId):
@@ -46,6 +52,7 @@ class VitalDataHandler(Thread):
         self.nurseDb = nurseDb
         self.dataInput = dataInput
         self.handlerId = handlerId
+        self.lock = Lock()
 
     #converts status to int
     def intStatus(self,status):
@@ -74,21 +81,24 @@ class VitalDataHandler(Thread):
     def sendText(self,msg):
         os.system('echo ' + `msg`)
         #bash = "gammu sendsms text "
-		
+        
     #need to complete
     #saves all info in a database.db
     #KEY: patientId+','+location; VAL: status
     def saveInfo(self,patientId,location,status):
-        self.patientDb.write(patientId + ',' + location, status)
+        self.patientDb.write(patientId,(location, status))
 
     #thread's main function
     def run(self):
         data = self.dataInput.split(',')
         patientId, location, status = data[0], data[1], data[2]
-        print patientId, location, status
-        if not self.patientDb.isNew(patientId+','+location) and self.isNegStatusChange(patientId, location, status): 
-            #self.sendText(self.formatText(patientId, locaiton, status))		#uncomment!
-            print "sending text"
+        # print patientId, location, status
+
+        # self.nurseDb = Database("nurses.db")
+
+        # if not self.patientDb.isNew(patientId+','+location) and self.isNegStatusChange(patientId, location, status): 
+        #     #self.sendText(self.formatText(patientId, locaiton, status))        #uncomment!
+        #     print "sending text"
         self.saveInfo(patientId, location, status)
 
 #TODO: make thread safe + addPhoneNum
@@ -128,10 +138,28 @@ class NurseHandler(object):
 if __name__ == "__main__":
     patientDb = Database("patients.db")
     nurseDb = Database("nurses.db")
+    num_patients = len(patientDb.getKeys())
+    num_nurses = len(nurseDb.getKeys())
+    print(nurseDb.getKeys())
     patientDataInputStream = ["p1,bed1,stable","p2,bed5,critical","p3,bed6,intermediate","p1,bed1,critical","p2,bed5,stable","p3,bed6,intermediate","p1,bed1,critical","p2,bed5,intermediate","p3,bed6,critical"]
-    NurseHandler(nurseDb).run()
-    for ii in range(9):
+    # NurseHandler(nurseDb).run()
+    while True:
+        patientDb = Database("patients.db")
+        nurseDb = Database("nurses.db")
+        for ii in range(9):
+            
+            if (num_patients != len(patientDb.getKeys())):
+                    print(patientDb.getKeys())
+                    print ("Patient Added")
+                    num_patients = len(patientDb.getKeys())
+
+            if (num_nurses != len(nurseDb.getKeys())):
+                print(nurseDb.getKeys())
+                print ("Nurse Added")
+                num_nurses = len(nurseDb.getKeys())
+
         vdh = VitalDataHandler(patientDb, nurseDb, patientDataInputStream[ii], ii)
+
         vdh.start()
         vdh.join()
     print "patient db: " + `patientDb.database`
